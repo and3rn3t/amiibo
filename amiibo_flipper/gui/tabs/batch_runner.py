@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.batch import BatchRunner, create_batch_from_yaml
+from amiibo_flipper.gui.settings import load_settings, save_settings
 from amiibo_flipper.gui.widgets import LogViewer, PathSelector
 
 logger = logging.getLogger(__name__)
@@ -66,8 +67,10 @@ class BatchRunnerTab(QWidget):
     def __init__(self):
         """Initialize batch runner tab."""
         super().__init__()
+        self._settings = load_settings()
         self.worker: Optional[BatchWorker] = None
         self._init_ui()
+        self._load_defaults()
 
     def _init_ui(self) -> None:
         """Initialize UI."""
@@ -115,6 +118,9 @@ class BatchRunnerTab(QWidget):
             self.log_viewer.append_log("Please select a batch file", "ERROR")
             return
 
+        self._settings.batch_file = batch_file
+        save_settings(self._settings)
+
         self.run_btn.setEnabled(False)
         self.log_viewer.append_log(f"Loading batch file: {batch_file}", "INFO")
 
@@ -128,3 +134,8 @@ class BatchRunnerTab(QWidget):
         level = "SUCCESS" if success else "ERROR"
         self.log_viewer.append_log(message, level)
         self.run_btn.setEnabled(True)
+
+    def _load_defaults(self) -> None:
+        """Apply saved defaults to form controls."""
+        if self._settings.batch_file:
+            self.file_selector.set_path(self._settings.batch_file)

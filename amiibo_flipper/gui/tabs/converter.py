@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from amiibo_flipper.gui.settings import load_settings, save_settings
 from amiibo_flipper.parallel import ConversionJob, convert_files_parallel
 from amiibo_flipper.gui.widgets import LogViewer, PathSelector
 
@@ -147,8 +148,10 @@ class ConverterTab(QWidget):
     def __init__(self):
         """Initialize converter tab."""
         super().__init__()
+        self._settings = load_settings()
         self.worker: Optional[ConversionWorker] = None
         self._init_ui()
+        self._load_defaults()
 
     def _init_ui(self) -> None:
         """Initialize UI."""
@@ -238,6 +241,13 @@ class ConverterTab(QWidget):
         # Determine mode
         mode = "import-archive" if "archive" in self.mode_combo.currentText().lower() else "convert"
 
+        self._settings.converter_source_dir = source
+        self._settings.converter_output_dir = output
+        self._settings.converter_workers = self.workers_spin.value()
+        self._settings.converter_overwrite = self.overwrite_check.isChecked()
+        self._settings.converter_flatten = self.flatten_check.isChecked()
+        save_settings(self._settings)
+
         self.convert_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
@@ -263,3 +273,13 @@ class ConverterTab(QWidget):
         self.log_viewer.append_log(message, level)
         self.convert_btn.setEnabled(True)
         self.progress_bar.setVisible(False)
+
+    def _load_defaults(self) -> None:
+        """Apply saved defaults to form controls."""
+        if self._settings.converter_source_dir:
+            self.source_selector.set_path(self._settings.converter_source_dir)
+        if self._settings.converter_output_dir:
+            self.output_selector.set_path(self._settings.converter_output_dir)
+        self.workers_spin.setValue(self._settings.converter_workers)
+        self.overwrite_check.setChecked(self._settings.converter_overwrite)
+        self.flatten_check.setChecked(self._settings.converter_flatten)

@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.converter import bin_to_nfc
+from amiibo_flipper.gui.settings import load_settings, save_settings
 from amiibo_flipper.gui.widgets import LogViewer, PathSelector
 
 logger = logging.getLogger(__name__)
@@ -74,11 +75,15 @@ class WatchWorker(QThread):
         def convert_single_file(source: Path, output_dir: Path, flatten: bool, overwrite: bool) -> dict[str, object]:
             try:
                 if source.suffix.lower() != ".bin":
-                    return {"success": False, "reason": "Only .bin files are converted"}
+                    reason = "Only .bin files are converted"
+                    self.log_message.emit(f"Skipped {source.name}: {reason}", "WARNING")
+                    return {"success": False, "reason": reason}
 
                 data = source.read_bytes()
                 if len(data) != 540:
-                    return {"success": False, "reason": f"Invalid size: {len(data)}"}
+                    reason = f"Invalid size: {len(data)}"
+                    self.log_message.emit(f"Skipped {source.name}: {reason}", "WARNING")
+                    return {"success": False, "reason": reason}
 
                 nfc_content = bin_to_nfc(data)
 
@@ -89,13 +94,18 @@ class WatchWorker(QThread):
                     output_file = output_dir / rel_path.with_suffix(".nfc")
 
                 if output_file.exists() and not overwrite:
-                    return {"success": False, "reason": "File exists"}
+                    reason = "File exists"
+                    self.log_message.emit(f"Skipped {source.name}: {reason}", "WARNING")
+                    return {"success": False, "reason": reason}
 
                 output_file.parent.mkdir(parents=True, exist_ok=True)
                 output_file.write_text(nfc_content, encoding="utf-8")
+                self.log_message.emit(f"Converted {source.name} -> {output_file.name}", "SUCCESS")
                 return {"success": True}
             except Exception as exc:
-                return {"success": False, "reason": str(exc)}
+                reason = str(exc)
+                self.log_message.emit(f"Error converting {source.name}: {reason}", "ERROR")
+                return {"success": False, "reason": reason}
 
         handler = _ConversionHandler(
             source_dir=self.source_dir,
@@ -142,8 +152,10 @@ class WatchTab(QWidget):
 
     def __init__(self):
         super().__init__()
+        self._settings = load_settings()
         self.worker: Optional[WatchWorker] = None
         self._init_ui()
+        self._load_defaults()
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout()
@@ -194,6 +206,12 @@ class WatchTab(QWidget):
             self.log_viewer.append_log("Please select an output directory", "ERROR")
             return
 
+        self._settings.watch_source_dir = source
+        self._settings.watch_output_dir = output
+        self._settings.watch_flatten = self.flatten_check.isChecked()
+        self._settings.watch_overwrite = self.overwrite_check.isChecked()
+        save_settings(self._settings)
+
         self._set_running_ui(True)
         self.worker = WatchWorker(
             source_dir=source,
@@ -219,3 +237,12 @@ class WatchTab(QWidget):
     def _set_running_ui(self, running: bool) -> None:
         self.start_btn.setEnabled(not running)
         self.stop_btn.setEnabled(running)
+
+    def _load_defaults(self) -> None:
+        """Apply saved defaults to form controls."""
+        if self._settings.watch_source_dir:
+            self.source_selector.set_path(self._settings.watch_source_dir)
+        if self._settings.watch_output_dir:
+            self.output_selector.set_path(self._settings.watch_output_dir)
+        self.flatten_check.setChecked(self._settings.watch_flatten)
+        self.overwrite_check.setChecked(self._settings.watch_overwrite)

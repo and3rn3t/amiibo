@@ -4,7 +4,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 from PyQt6.QtWidgets import QApplication, QMainWindow, QTabWidget, QVBoxLayout, QWidget
 
@@ -13,6 +12,7 @@ from amiibo_flipper.gui.tabs import (
     ConverterTab,
     DashboardTab,
     DuplicatesTab,
+    SettingsTab,
     WatchTab,
 )
 
@@ -58,6 +58,7 @@ class MainWindow(QMainWindow):
         tabs.addTab(WatchTab(), "Watch")
         tabs.addTab(DuplicatesTab(), "Duplicates")
         tabs.addTab(DashboardTab(), "Dashboard")
+        tabs.addTab(SettingsTab(), "Settings")
 
         layout.addWidget(tabs)
         central_widget.setLayout(layout)

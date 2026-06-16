@@ -16,6 +16,7 @@ from amiibo_flipper.gui.main_window import MainWindow
 from amiibo_flipper.gui.tabs import BatchRunnerTab, ConverterTab
 from amiibo_flipper.gui.tabs.dashboard import compute_dashboard_stats
 from amiibo_flipper.gui.tabs.duplicates import DuplicatesTab
+from amiibo_flipper.gui.tabs.settings_panel import SettingsTab
 from amiibo_flipper.gui.tabs.watch_monitor import WatchTab
 from amiibo_flipper.gui.widgets import PathSelector, LogViewer
 
@@ -193,6 +194,16 @@ class TestWatchTab:
         assert tab.stop_btn.isEnabled() is False
 
 
+class TestSettingsTab:
+    """Tests for SettingsTab."""
+
+    def test_settings_tab_init(self, qapp):
+        """Settings tab should expose save controls."""
+        tab = SettingsTab()
+        assert tab.save_btn is not None
+        assert tab.converter_workers_spin.value() >= 1
+
+
 class TestMainWindow:
     """Tests for MainWindow."""
 
@@ -214,4 +225,4 @@ class TestMainWindow:
             tabs = widget
             break
         assert tabs is not None
-        assert tabs.count() == 5
+        assert tabs.count() == 6
