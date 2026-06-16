@@ -13,6 +13,7 @@ from amiibo_flipper.gui.tabs import (
     ConverterTab,
     DashboardTab,
     DuplicatesTab,
+    WatchTab,
 )
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,7 @@ class MainWindow(QMainWindow):
         tabs = QTabWidget()
         tabs.addTab(ConverterTab(), "Converter")
         tabs.addTab(BatchRunnerTab(), "Batch Runner")
+        tabs.addTab(WatchTab(), "Watch")
         tabs.addTab(DuplicatesTab(), "Duplicates")
         tabs.addTab(DashboardTab(), "Dashboard")
 

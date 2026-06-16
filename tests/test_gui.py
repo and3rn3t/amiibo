@@ -16,6 +16,7 @@ from amiibo_flipper.gui.main_window import MainWindow
 from amiibo_flipper.gui.tabs import BatchRunnerTab, ConverterTab
 from amiibo_flipper.gui.tabs.dashboard import compute_dashboard_stats
 from amiibo_flipper.gui.tabs.duplicates import DuplicatesTab
+from amiibo_flipper.gui.tabs.watch_monitor import WatchTab
 from amiibo_flipper.gui.widgets import PathSelector, LogViewer
 
 
@@ -169,6 +170,29 @@ class TestDashboardStats:
         assert stats.total_bytes > 0
 
 
+class TestWatchTab:
+    """Tests for WatchTab."""
+
+    def test_watch_tab_init(self, qapp):
+        """Watch tab should initialize controls and counters."""
+        tab = WatchTab()
+        assert tab.source_selector is not None
+        assert tab.output_selector is not None
+        assert tab.start_btn.isEnabled() is True
+        assert tab.stop_btn.isEnabled() is False
+        assert tab.converted_label.text() == "Converted: 0"
+
+    def test_watch_tab_running_ui_toggle(self, qapp):
+        """Start/stop button states should toggle with run state."""
+        tab = WatchTab()
+        tab._set_running_ui(True)
+        assert tab.start_btn.isEnabled() is False
+        assert tab.stop_btn.isEnabled() is True
+        tab._set_running_ui(False)
+        assert tab.start_btn.isEnabled() is True
+        assert tab.stop_btn.isEnabled() is False
+
+
 class TestMainWindow:
     """Tests for MainWindow."""
 
@@ -190,4 +214,4 @@ class TestMainWindow:
             tabs = widget
             break
         assert tabs is not None
-        assert tabs.count() == 4
+        assert tabs.count() == 5
