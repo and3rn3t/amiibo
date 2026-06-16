@@ -7,6 +7,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from amiibo_flipper.archive import import_archive
+from amiibo_flipper.batch import BatchRunner, create_batch_from_yaml
 from amiibo_flipper.client import fetch_amiibos
 from amiibo_flipper.config import load_config
 from amiibo_flipper.converter import convert_directory
@@ -17,6 +18,7 @@ from amiibo_flipper.inventory import build_inventory, render_inventory_report
 from amiibo_flipper.models import Amiibo, amiibo_from_api
 from amiibo_flipper.nfc import import_nfc_files
 from amiibo_flipper.organizer import organize_nfc_files
+from amiibo_flipper.parallel import convert_files_parallel, ConversionJob
 from amiibo_flipper.picker import pick_characters, pick_series
 from amiibo_flipper.validator import validate_nfc_directory
 
@@ -197,6 +199,36 @@ def _build_parser() -> argparse.ArgumentParser:
     dup_parser.add_argument("--source", type=Path, required=True, help="Directory to scan")
     dup_parser.add_argument("--report", type=Path, help="Save results to JSON file")
     dup_parser.set_defaults(func=run_check_duplicates)
+
+    # watch
+    watch_parser = subparsers.add_parser(
+        "watch",
+        help="Watch directory and auto-convert new .bin files",
+    )
+    watch_parser.add_argument("--source", type=Path, required=True, help="Directory to monitor")
+    watch_parser.add_argument("--output", type=Path, required=True, help="Output directory for .nfc files")
+    watch_parser.add_argument("--flatten", action="store_true", help="Flatten output directory structure")
+    watch_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing files")
+    watch_parser.set_defaults(func=run_watch)
+
+    # batch
+    batch_parser = subparsers.add_parser(
+        "batch",
+        help="Execute a batch of commands from YAML file",
+    )
+    batch_parser.add_argument("--file", type=Path, required=True, help="YAML file with batch commands")
+    batch_parser.set_defaults(func=run_batch)
+
+    # convert-bin-parallel
+    conv_par_parser = subparsers.add_parser(
+        "convert-bin-parallel",
+        help="Convert .bin files in parallel (faster for large batches)",
+    )
+    conv_par_parser.add_argument("--source", type=Path, required=True, help="Directory of .bin files")
+    conv_par_parser.add_argument("--output", type=Path, required=True, help="Destination directory for .nfc files")
+    conv_par_parser.add_argument("--workers", type=int, help="Number of parallel workers (default: CPU count)")
+    conv_par_parser.add_argument("--overwrite", action="store_true")
+    conv_par_parser.set_defaults(func=run_convert_bin_parallel)
 
     return parser
 
@@ -439,6 +471,134 @@ def run_check_duplicates(args: argparse.Namespace) -> int:
         print(f"\nReport saved to {args.report}")
 
     return 0 if result.duplicates_found == 0 else 1
+
+
+def run_watch(args: argparse.Namespace) -> int:
+    """Watch directory and auto-convert new .bin files."""
+    try:
+        from amiibo_flipper.watch import watch_directory
+    except ImportError:
+        print("Error: watchdog package required for watch mode")
+        print("Install with: pip install watchdog")
+        return 2
+
+    if not args.source.exists():
+        print(f"Source directory not found: {args.source}")
+        return 2
+
+    args.output.mkdir(parents=True, exist_ok=True)
+
+    def convert_single_file(source, output_dir, flatten, overwrite):
+        """Convert a single file for watch mode."""
+        from amiibo_flipper.converter import bin_to_nfc
+
+        try:
+            data = source.read_bytes()
+            if len(data) != 540:
+                return {"success": False, "reason": f"Invalid size: {len(data)}"}
+
+            nfc_content = bin_to_nfc(data)
+
+            if flatten:
+                output_file = output_dir / f"{source.stem}.nfc"
+            else:
+                rel_path = source.relative_to(args.source)
+                output_file = output_dir / rel_path.with_suffix(".nfc")
+
+            if output_file.exists() and not overwrite:
+                return {"success": False, "reason": "File exists"}
+
+            output_file.parent.mkdir(parents=True, exist_ok=True)
+            output_file.write_text(nfc_content)
+            return {"success": True}
+
+        except Exception as e:
+            return {"success": False, "reason": str(e)}
+
+    stats = watch_directory(
+        source_dir=args.source,
+        output_dir=args.output,
+        convert_func=convert_single_file,
+        flatten=args.flatten,
+        overwrite=args.overwrite,
+    )
+
+    print("\n👁️  Watch session complete")
+    print(f"  Converted: {stats.files_converted}")
+    print(f"  Skipped: {stats.files_skipped}")
+    print(f"  Errors: {stats.errors}")
+    print(f"  Duration: {stats.session_duration:.1f}s")
+    return 0 if stats.errors == 0 else 1
+
+
+def run_batch(args: argparse.Namespace) -> int:
+    """Execute batch commands from YAML file."""
+    if not args.file.exists():
+        print(f"Batch file not found: {args.file}")
+        return 2
+
+    try:
+        yaml_content = args.file.read_text()
+        commands = create_batch_from_yaml(yaml_content)
+
+        if not commands:
+            print("No commands found in batch file")
+            return 0
+
+        runner = BatchRunner()
+        result = runner.run(commands)
+
+        print("\n📦 Batch execution complete")
+        print(f"  Commands run: {result.commands_run}")
+        print(f"  Succeeded: {result.commands_succeeded}")
+        print(f"  Failed: {result.commands_failed}")
+
+        if result.failures:
+            print("\n❌ Failures:")
+            for cmd_name, error in result.failures:
+                print(f"  {cmd_name}: {error}")
+
+        return 0 if result.commands_failed == 0 else 1
+
+    except Exception as e:
+        print(f"Batch execution failed: {e}")
+        return 2
+
+
+def run_convert_bin_parallel(args: argparse.Namespace) -> int:
+    """Convert .bin files in parallel using thread pool."""
+    if not args.source.exists():
+        print(f"Source directory not found: {args.source}")
+        return 2
+
+    # Collect all .bin files
+    bin_files = list(args.source.rglob("*.bin")) + list(args.source.rglob("*.BIN"))
+
+    if not bin_files:
+        print("No .bin files found")
+        return 0
+
+    # Create conversion jobs
+    jobs = []
+    for bin_file in bin_files:
+        output_file = args.output / bin_file.relative_to(args.source).with_suffix(".nfc")
+        jobs.append(ConversionJob(
+            source_file=bin_file,
+            output_file=output_file,
+            overwrite=args.overwrite,
+        ))
+
+    print(f"Converting {len(jobs)} files in parallel...")
+    result = convert_files_parallel(jobs, max_workers=args.workers)
+
+    print(f"✓ Converted {result.succeeded} files")
+    print(f"⊘ Skipped {result.skipped} files")
+    if result.failed > 0:
+        print(f"✗ Failed {result.failed} files")
+        for file_path, error in result.errors[:5]:
+            print(f"    {file_path.name}: {error}")
+
+    return 0 if result.failed == 0 else 1
 
 
 if __name__ == "__main__":
