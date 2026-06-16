@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amiibo-flipper"
+version = "0.1.0"
+description = "Import amiibo metadata and export Flipper-friendly files"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "andernet" }]
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+amiibo-flipper = "amiibo_flipper.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["amiibo_flipper*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
