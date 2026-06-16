@@ -24,6 +24,8 @@ class GuiSettings:
     watch_overwrite: bool = False
     watch_flatten: bool = False
     batch_file: str = ""
+    theme: str = "light"
+    compact_mode: bool = False
 
 
 def load_settings(path: Path = SETTINGS_PATH) -> GuiSettings:

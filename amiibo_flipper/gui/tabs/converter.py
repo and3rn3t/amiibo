@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QSpinBox,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -195,6 +196,9 @@ class ConverterTab(QWidget):
         controls_card.layout.addWidget(self.workers_spin)
 
         self.convert_btn = QPushButton("Start Conversion")
+        self.convert_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
+        )
         self.convert_btn.clicked.connect(self._on_start_conversion)
         controls_card.layout.addWidget(self.convert_btn)
 
@@ -211,6 +215,9 @@ class ConverterTab(QWidget):
         log_card.layout.addWidget(self.log_viewer, 1)
 
         self.clear_logs_btn = QPushButton("Clear Logs")
+        self.clear_logs_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogResetButton)
+        )
         self.clear_logs_btn.clicked.connect(self.log_viewer.clear_logs)
         log_card.layout.addWidget(self.clear_logs_btn)
 

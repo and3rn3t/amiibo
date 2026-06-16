@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QLabel,
     QPushButton,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -77,6 +78,9 @@ class DashboardTab(QWidget):
         controls_card.layout.addWidget(self.source_selector)
 
         self.refresh_btn = QPushButton("Refresh Dashboard")
+        self.refresh_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload)
+        )
         self.refresh_btn.clicked.connect(self._on_refresh)
         controls_card.layout.addWidget(self.refresh_btn)
 

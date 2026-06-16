@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QLabel,
     QPushButton,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -174,8 +175,14 @@ class WatchTab(QWidget):
         controls_card.layout.addWidget(self.overwrite_check)
 
         self.start_btn = QPushButton("Start Watch")
+        self.start_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
+        )
         self.start_btn.clicked.connect(self._on_start)
         self.stop_btn = QPushButton("Stop Watch")
+        self.stop_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaStop)
+        )
         self.stop_btn.clicked.connect(self._on_stop)
         self.stop_btn.setEnabled(False)
         controls_card.layout.addWidget(self.start_btn)

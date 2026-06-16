@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QLabel,
     QPushButton,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -86,6 +87,9 @@ class DuplicatesTab(QWidget):
         controls_card.layout.addWidget(self.report_selector)
 
         self.scan_btn = QPushButton("Scan Duplicates")
+        self.scan_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView)
+        )
         self.scan_btn.clicked.connect(self._on_scan)
         controls_card.layout.addWidget(self.scan_btn)
 
@@ -100,6 +104,9 @@ class DuplicatesTab(QWidget):
         results_card.layout.addWidget(self.log_viewer, 1)
 
         self.clear_logs_btn = QPushButton("Clear Logs")
+        self.clear_logs_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogResetButton)
+        )
         self.clear_logs_btn.clicked.connect(self.log_viewer.clear_logs)
         results_card.layout.addWidget(self.clear_logs_btn)
 

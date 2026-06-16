@@ -6,8 +6,17 @@ import sys
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow, QTabWidget, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QApplication,
+    QLabel,
+    QMainWindow,
+    QStyle,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
+from amiibo_flipper.gui.settings import GuiSettings, load_settings
 from amiibo_flipper.gui.tabs import (
     BatchRunnerTab,
     ConverterTab,
@@ -20,103 +29,161 @@ from amiibo_flipper.gui.tabs import (
 logger = logging.getLogger(__name__)
 
 
-APP_STYLE = """
-QWidget {
-    background: #f3efe7;
-    color: #1f2a30;
-    font-family: Avenir Next, Helvetica Neue, Helvetica, Arial, sans-serif;
-    font-size: 13px;
-}
+def build_app_style(theme: str, compact_mode: bool) -> str:
+    """Build stylesheet for selected theme and density."""
+    if theme == "dark":
+        palette = {
+            "bg": "#0f171b",
+            "fg": "#e9eef0",
+            "title": "#f4f7f8",
+            "subtitle": "#9fb2bb",
+            "section": "#8fc4d5",
+            "card_bg": "#162329",
+            "card_border": "#29414a",
+            "pane_border": "#2d434c",
+            "pane_bg": "#162329",
+            "tab_bg": "#203238",
+            "tab_selected": "#162329",
+            "tab_fg": "#a8bbc3",
+            "tab_selected_fg": "#eaf1f4",
+            "input_bg": "#1d2e35",
+            "input_border": "#35505a",
+            "button_bg": "#2f7b8a",
+            "button_hover": "#3d96a8",
+            "button_pressed": "#245f6a",
+            "button_disabled_bg": "#51656d",
+            "button_disabled_fg": "#ced7dc",
+            "progress_bg": "#1e2e34",
+            "progress_chunk": "#4da394",
+        }
+    else:
+        palette = {
+            "bg": "#f3efe7",
+            "fg": "#1f2a30",
+            "title": "#102129",
+            "subtitle": "#566973",
+            "section": "#173645",
+            "card_bg": "#fffdf9",
+            "card_border": "#ded6c7",
+            "pane_border": "#d9d1c2",
+            "pane_bg": "#fffdf9",
+            "tab_bg": "#ece6da",
+            "tab_selected": "#fffdf9",
+            "tab_fg": "#415560",
+            "tab_selected_fg": "#163845",
+            "input_bg": "#ffffff",
+            "input_border": "#cfc6b8",
+            "button_bg": "#26556a",
+            "button_hover": "#2f6880",
+            "button_pressed": "#1f4455",
+            "button_disabled_bg": "#99a8b0",
+            "button_disabled_fg": "#edf1f3",
+            "progress_bg": "#f7f3eb",
+            "progress_chunk": "#3d8a83",
+        }
 
-QLabel#AppTitle {
+    font_size = "12px" if compact_mode else "13px"
+    tab_padding = "6px 10px" if compact_mode else "8px 14px"
+    input_padding = "4px 6px" if compact_mode else "6px 8px"
+    button_padding = "6px 10px" if compact_mode else "8px 12px"
+
+    return f"""
+QWidget {{
+    background: {palette['bg']};
+    color: {palette['fg']};
+    font-family: Avenir Next, Helvetica Neue, Helvetica, Arial, sans-serif;
+    font-size: {font_size};
+}}
+
+QLabel#AppTitle {{
     font-size: 24px;
     font-weight: 700;
-    color: #102129;
+    color: {palette['title']};
     margin-bottom: 2px;
-}
+}}
 
-QLabel#AppSubtitle {
+QLabel#AppSubtitle {{
     font-size: 12px;
-    color: #566973;
+    color: {palette['subtitle']};
     margin-bottom: 8px;
-}
+}}
 
-QLabel#SectionTitle {
+QLabel#SectionTitle {{
     font-size: 14px;
     font-weight: 700;
-    color: #173645;
-}
+    color: {palette['section']};
+}}
 
-QFrame#Card {
-    background: #fffdf9;
-    border: 1px solid #ded6c7;
+QFrame#Card {{
+    background: {palette['card_bg']};
+    border: 1px solid {palette['card_border']};
     border-radius: 10px;
-}
+}}
 
-QTabWidget::pane {
-    border: 1px solid #d9d1c2;
+QTabWidget::pane {{
+    border: 1px solid {palette['pane_border']};
     border-radius: 10px;
-    background: #fffdf9;
+    background: {palette['pane_bg']};
     top: -1px;
-}
+}}
 
-QTabBar::tab {
-    background: #ece6da;
-    border: 1px solid #d9d1c2;
+QTabBar::tab {{
+    background: {palette['tab_bg']};
+    border: 1px solid {palette['pane_border']};
     border-bottom: none;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
-    padding: 8px 14px;
+    padding: {tab_padding};
     margin-right: 4px;
-    color: #415560;
-}
+    color: {palette['tab_fg']};
+}}
 
-QTabBar::tab:selected {
-    background: #fffdf9;
-    color: #163845;
+QTabBar::tab:selected {{
+    background: {palette['tab_selected']};
+    color: {palette['tab_selected_fg']};
     font-weight: 600;
-}
+}}
 
-QLineEdit, QComboBox, QSpinBox, QTextEdit {
-    background: #ffffff;
-    border: 1px solid #cfc6b8;
+QLineEdit, QComboBox, QSpinBox, QTextEdit {{
+    background: {palette['input_bg']};
+    border: 1px solid {palette['input_border']};
     border-radius: 8px;
-    padding: 6px 8px;
-}
+    padding: {input_padding};
+}}
 
-QPushButton {
-    background: #26556a;
+QPushButton {{
+    background: {palette['button_bg']};
     color: #f8fafb;
     border: none;
     border-radius: 8px;
-    padding: 8px 12px;
+    padding: {button_padding};
     font-weight: 600;
-}
+}}
 
-QPushButton:hover {
-    background: #2f6880;
-}
+QPushButton:hover {{
+    background: {palette['button_hover']};
+}}
 
-QPushButton:pressed {
-    background: #1f4455;
-}
+QPushButton:pressed {{
+    background: {palette['button_pressed']};
+}}
 
-QPushButton:disabled {
-    background: #99a8b0;
-    color: #edf1f3;
-}
+QPushButton:disabled {{
+    background: {palette['button_disabled_bg']};
+    color: {palette['button_disabled_fg']};
+}}
 
-QProgressBar {
-    border: 1px solid #cfc6b8;
+QProgressBar {{
+    border: 1px solid {palette['input_border']};
     border-radius: 8px;
-    background: #f7f3eb;
+    background: {palette['progress_bg']};
     text-align: center;
-}
+}}
 
-QProgressBar::chunk {
+QProgressBar::chunk {{
     border-radius: 7px;
-    background: #3d8a83;
-}
+    background: {palette['progress_chunk']};
+}}
 """
 
 
@@ -143,10 +210,12 @@ class MainWindow(QMainWindow):
     def __init__(self):
         """Initialize main window."""
         super().__init__()
+        self._settings = load_settings()
         self.setWindowTitle("amiibo-flipper GUI")
         self.setMinimumSize(1060, 720)
         self.setGeometry(100, 100, 1160, 780)
         self._init_ui()
+        self._apply_theme_and_density(self._settings)
 
     def _init_ui(self) -> None:
         """Initialize UI."""
@@ -181,6 +250,13 @@ class MainWindow(QMainWindow):
         tabs.addTab(self.dashboard_tab, "Dashboard")
         tabs.addTab(self.settings_tab, "Settings")
 
+        tabs.setTabIcon(0, self.style().standardIcon(QStyle.StandardPixmap.SP_CommandLink))
+        tabs.setTabIcon(1, self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogDetailedView))
+        tabs.setTabIcon(2, self.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload))
+        tabs.setTabIcon(3, self.style().standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton))
+        tabs.setTabIcon(4, self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon))
+        tabs.setTabIcon(5, self.style().standardIcon(QStyle.StandardPixmap.SP_FileDialogContentsView))
+
         self.settings_tab.settings_saved.connect(self._on_settings_saved)
 
         layout.addWidget(tabs)
@@ -189,9 +265,18 @@ class MainWindow(QMainWindow):
 
     def _on_settings_saved(self, settings: object) -> None:
         """Apply newly saved defaults to already-open tabs."""
+        self._settings = settings
         self.converter_tab.apply_settings(settings)
         self.batch_tab.apply_settings(settings)
         self.watch_tab.apply_settings(settings)
+        self._apply_theme_and_density(settings)
+
+    def _apply_theme_and_density(self, settings: GuiSettings) -> None:
+        """Apply theme and compact mode to the running app."""
+        app = QApplication.instance()
+        if app is None:
+            return
+        app.setStyleSheet(build_app_style(settings.theme, settings.compact_mode))
 
 
 def main() -> None:
@@ -203,7 +288,8 @@ def main() -> None:
 
     _configure_qt_plugin_paths()
     app = QApplication(sys.argv)
-    app.setStyleSheet(APP_STYLE)
+    initial = load_settings()
+    app.setStyleSheet(build_app_style(initial.theme, initial.compact_mode))
     window = MainWindow()
     window.show()
     sys.exit(app.exec())

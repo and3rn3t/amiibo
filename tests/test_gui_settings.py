@@ -12,6 +12,8 @@ def test_load_settings_defaults_when_missing(tmp_path: Path) -> None:
     assert settings.converter_workers == 4
     assert settings.converter_source_dir == ""
     assert settings.batch_file == ""
+    assert settings.theme == "light"
+    assert settings.compact_mode is False
 
 
 def test_save_and_load_settings_roundtrip(tmp_path: Path) -> None:
@@ -27,6 +29,8 @@ def test_save_and_load_settings_roundtrip(tmp_path: Path) -> None:
         watch_overwrite=True,
         watch_flatten=False,
         batch_file="/tmp/workflow.yml",
+        theme="dark",
+        compact_mode=True,
     )
 
     save_settings(original, settings_path)

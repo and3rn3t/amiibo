@@ -7,6 +7,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -97,6 +98,9 @@ class BatchRunnerTab(QWidget):
 
         # Run button
         self.run_btn = QPushButton("Run Batch")
+        self.run_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_MediaPlay)
+        )
         self.run_btn.clicked.connect(self._on_run_batch)
         controls_card.layout.addWidget(self.run_btn)
 
@@ -110,6 +114,9 @@ class BatchRunnerTab(QWidget):
 
         # Clear logs button
         self.clear_logs_btn = QPushButton("Clear Logs")
+        self.clear_logs_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogResetButton)
+        )
         self.clear_logs_btn.clicked.connect(self.log_viewer.clear_logs)
         log_card.layout.addWidget(self.clear_logs_btn)
 

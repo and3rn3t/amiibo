@@ -5,9 +5,11 @@ from __future__ import annotations
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QLabel,
     QPushButton,
     QSpinBox,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -74,10 +76,24 @@ class SettingsTab(QWidget):
         batch_card.layout.addWidget(self.batch_file_selector)
 
         self.save_btn = QPushButton("Save Settings")
+        self.save_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_DialogSaveButton)
+        )
         self.save_btn.clicked.connect(self._on_save)
         batch_card.layout.addWidget(self.save_btn)
 
         layout.addWidget(batch_card)
+
+        appearance_card = Card()
+        appearance_card.layout.addWidget(section_title("Appearance"))
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["light", "dark"])
+        self.compact_mode_check = QCheckBox("Compact mode")
+        appearance_card.layout.addWidget(QLabel("Theme:"))
+        appearance_card.layout.addWidget(self.theme_combo)
+        appearance_card.layout.addWidget(self.compact_mode_check)
+
+        layout.addWidget(appearance_card)
 
         log_card = Card()
         log_card.layout.addWidget(section_title("Settings Activity"))
@@ -100,6 +116,8 @@ class SettingsTab(QWidget):
         self.watch_overwrite_check.setChecked(settings.watch_overwrite)
         self.watch_flatten_check.setChecked(settings.watch_flatten)
         self.batch_file_selector.set_path(settings.batch_file)
+        self.theme_combo.setCurrentText(settings.theme if settings.theme in {"light", "dark"} else "light")
+        self.compact_mode_check.setChecked(settings.compact_mode)
 
     def _on_save(self) -> None:
         settings = GuiSettings(
@@ -113,6 +131,8 @@ class SettingsTab(QWidget):
             watch_overwrite=self.watch_overwrite_check.isChecked(),
             watch_flatten=self.watch_flatten_check.isChecked(),
             batch_file=self.batch_file_selector.get_path().strip(),
+            theme=self.theme_combo.currentText(),
+            compact_mode=self.compact_mode_check.isChecked(),
         )
         save_settings(settings)
         self._settings = settings
