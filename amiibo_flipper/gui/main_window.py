@@ -2,6 +2,7 @@
 
 import logging
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -439,10 +440,49 @@ def _configure_qt_plugin_paths() -> None:
     plugin_root = pyqt_root / "Qt6" / "plugins"
     platform_root = plugin_root / "platforms"
 
+    _repair_qt_plugin_visibility(pyqt_root, plugin_root, platform_root)
+
     if plugin_root.exists():
         os.environ.setdefault("QT_PLUGIN_PATH", str(plugin_root))
     if platform_root.exists():
         os.environ.setdefault("QT_QPA_PLATFORM_PLUGIN_PATH", str(platform_root))
+
+
+def _repair_qt_plugin_visibility(pyqt_root: Path, plugin_root: Path, platform_root: Path) -> None:
+    """Repair macOS file flags that can hide Qt plugins from the loader.
+
+    Some environments set the `hidden` flag on the PyQt6 tree, which causes Qt to
+    skip `libqcocoa.dylib` and fail startup with a cocoa plugin error.
+    """
+    if sys.platform != "darwin":
+        return
+
+    candidates: list[Path] = [pyqt_root, pyqt_root / "Qt6", plugin_root, platform_root]
+    plugin_files = [
+        platform_root / "libqcocoa.dylib",
+        platform_root / "libqminimal.dylib",
+        platform_root / "libqoffscreen.dylib",
+    ]
+
+    for path in [*candidates, *plugin_files]:
+        if not path.exists():
+            continue
+        try:
+            subprocess.run(
+                ["chflags", "nohidden", str(path)],
+                check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            logger.debug("Unable to clear hidden flag for %s", path)
+
+    if platform_root.exists():
+        for stale in platform_root.glob("* 2.dylib"):
+            try:
+                stale.unlink(missing_ok=True)
+            except Exception:
+                logger.debug("Unable to remove stale plugin placeholder %s", stale)
 
 
 class MainWindow(QMainWindow):

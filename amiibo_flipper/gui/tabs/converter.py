@@ -6,11 +6,15 @@ from typing import Optional
 
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import (
+    QFileDialog,
     QCheckBox,
     QComboBox,
+    QHBoxLayout,
     QLabel,
+    QLineEdit,
     QProgressBar,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
     QStyle,
     QVBoxLayout,
@@ -18,7 +22,7 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.gui.settings import GuiSettings, load_settings, save_settings
-from amiibo_flipper.gui.widgets import Card, LogViewer, PathSelector, section_title
+from amiibo_flipper.gui.widgets import Card, LogViewer, section_title
 from amiibo_flipper.parallel import ConversionJob, convert_files_parallel
 
 logger = logging.getLogger(__name__)
@@ -169,17 +173,17 @@ class ConverterTab(QWidget):
         controls_card.layout.addWidget(mode_label)
         controls_card.layout.addWidget(self.mode_combo)
 
-        self.source_selector = PathSelector(
-            "Source Directory:",
-            is_directory=True,
-        )
-        controls_card.layout.addWidget(self.source_selector)
+        source_row = self._build_directory_row("Source Directory:")
+        self.source_input = source_row[0]
+        self.source_browse_btn = source_row[1]
+        self.source_browse_btn.clicked.connect(self._on_browse_source)
+        controls_card.layout.addWidget(source_row[2])
 
-        self.output_selector = PathSelector(
-            "Output Directory:",
-            is_directory=True,
-        )
-        controls_card.layout.addWidget(self.output_selector)
+        output_row = self._build_directory_row("Output Directory:")
+        self.output_input = output_row[0]
+        self.output_browse_btn = output_row[1]
+        self.output_browse_btn.clicked.connect(self._on_browse_output)
+        controls_card.layout.addWidget(output_row[2])
 
         self.overwrite_check = QCheckBox("Overwrite existing files")
         self.flatten_check = QCheckBox("Flatten directory structure (archive mode)")
@@ -233,8 +237,8 @@ class ConverterTab(QWidget):
 
     def _on_start_conversion(self) -> None:
         """Start conversion."""
-        source = self.source_selector.get_path()
-        output = self.output_selector.get_path()
+        source = self.source_input.text().strip()
+        output = self.output_input.text().strip()
 
         if not source:
             self.log_viewer.append_log("Please select source directory", "ERROR")
@@ -283,9 +287,9 @@ class ConverterTab(QWidget):
     def _load_defaults(self) -> None:
         """Apply saved defaults to form controls."""
         if self._settings.converter_source_dir:
-            self.source_selector.set_path(self._settings.converter_source_dir)
+            self.source_input.setText(self._settings.converter_source_dir)
         if self._settings.converter_output_dir:
-            self.output_selector.set_path(self._settings.converter_output_dir)
+            self.output_input.setText(self._settings.converter_output_dir)
         self.workers_spin.setValue(self._settings.converter_workers)
         self.overwrite_check.setChecked(self._settings.converter_overwrite)
         self.flatten_check.setChecked(self._settings.converter_flatten)
@@ -294,3 +298,52 @@ class ConverterTab(QWidget):
         """Apply settings pushed from the Settings tab."""
         self._settings = settings
         self._load_defaults()
+
+    def _build_directory_row(self, label_text: str) -> tuple[QLineEdit, QPushButton, QWidget]:
+        """Create a robust converter row with fixed browse action column."""
+        container = QWidget()
+        column = QVBoxLayout()
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(4)
+
+        label = QLabel(label_text)
+        label.setMinimumHeight(0)
+
+        path_input = QLineEdit()
+        path_input.setReadOnly(True)
+        path_input.setMinimumWidth(0)
+        path_input.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
+
+        browse_btn = QPushButton("")
+        browse_btn.setProperty("variant", "secondary")
+        browse_btn.setToolTip("Browse")
+        browse_btn.setFixedWidth(40)
+        style = self.style()
+        if style is not None:
+            browse_btn.setIcon(style.standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon))
+
+        row = QHBoxLayout()
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
+        row.addWidget(path_input, 1)
+        row.addWidget(browse_btn)
+
+        column.addWidget(label)
+        column.addLayout(row)
+        container.setLayout(column)
+        return path_input, browse_btn, container
+
+    def _on_browse_source(self) -> None:
+        """Select source directory."""
+        path = QFileDialog.getExistingDirectory(self, "Select Source Directory", str(Path.home()))
+        if path:
+            self.source_input.setText(path)
+
+    def _on_browse_output(self) -> None:
+        """Select output directory."""
+        path = QFileDialog.getExistingDirectory(self, "Select Output Directory", str(Path.home()))
+        if path:
+            self.output_input.setText(path)
