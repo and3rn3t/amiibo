@@ -226,3 +226,18 @@ class TestMainWindow:
             break
         assert tabs is not None
         assert tabs.count() == 6
+
+    def test_main_window_live_settings_propagation(self, qapp):
+        """Saving settings updates open tabs without restart."""
+        window = MainWindow()
+
+        window.settings_tab.converter_workers_spin.setValue(7)
+        window.settings_tab.converter_overwrite_check.setChecked(True)
+        window.settings_tab.batch_file_selector.set_path("/tmp/demo.yml")
+        window.settings_tab.watch_flatten_check.setChecked(True)
+        window.settings_tab._on_save()
+
+        assert window.converter_tab.workers_spin.value() == 7
+        assert window.converter_tab.overwrite_check.isChecked() is True
+        assert window.batch_tab.file_selector.get_path() == "/tmp/demo.yml"
+        assert window.watch_tab.flatten_check.isChecked() is True

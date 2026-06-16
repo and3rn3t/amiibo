@@ -53,16 +53,31 @@ class MainWindow(QMainWindow):
 
         # Create tabs
         tabs = QTabWidget()
-        tabs.addTab(ConverterTab(), "Converter")
-        tabs.addTab(BatchRunnerTab(), "Batch Runner")
-        tabs.addTab(WatchTab(), "Watch")
-        tabs.addTab(DuplicatesTab(), "Duplicates")
-        tabs.addTab(DashboardTab(), "Dashboard")
-        tabs.addTab(SettingsTab(), "Settings")
+        self.converter_tab = ConverterTab()
+        self.batch_tab = BatchRunnerTab()
+        self.watch_tab = WatchTab()
+        self.duplicates_tab = DuplicatesTab()
+        self.dashboard_tab = DashboardTab()
+        self.settings_tab = SettingsTab()
+
+        tabs.addTab(self.converter_tab, "Converter")
+        tabs.addTab(self.batch_tab, "Batch Runner")
+        tabs.addTab(self.watch_tab, "Watch")
+        tabs.addTab(self.duplicates_tab, "Duplicates")
+        tabs.addTab(self.dashboard_tab, "Dashboard")
+        tabs.addTab(self.settings_tab, "Settings")
+
+        self.settings_tab.settings_saved.connect(self._on_settings_saved)
 
         layout.addWidget(tabs)
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
+
+    def _on_settings_saved(self, settings: object) -> None:
+        """Apply newly saved defaults to already-open tabs."""
+        self.converter_tab.apply_settings(settings)
+        self.batch_tab.apply_settings(settings)
+        self.watch_tab.apply_settings(settings)
 
 
 def main() -> None:

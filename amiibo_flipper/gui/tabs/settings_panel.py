@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QLabel,
@@ -17,6 +18,8 @@ from amiibo_flipper.gui.widgets import LogViewer, PathSelector
 
 class SettingsTab(QWidget):
     """Tab for editing GUI defaults used by other tabs."""
+
+    settings_saved = pyqtSignal(object)  # GuiSettings
 
     def __init__(self):
         super().__init__()
@@ -94,4 +97,6 @@ class SettingsTab(QWidget):
             batch_file=self.batch_file_selector.get_path().strip(),
         )
         save_settings(settings)
+        self._settings = settings
+        self.settings_saved.emit(settings)
         self.log_viewer.append_log("Settings saved", "SUCCESS")

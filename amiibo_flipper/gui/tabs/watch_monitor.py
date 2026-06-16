@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.converter import bin_to_nfc
-from amiibo_flipper.gui.settings import load_settings, save_settings
+from amiibo_flipper.gui.settings import GuiSettings, load_settings, save_settings
 from amiibo_flipper.gui.widgets import LogViewer, PathSelector
 
 logger = logging.getLogger(__name__)
@@ -246,3 +246,8 @@ class WatchTab(QWidget):
             self.output_selector.set_path(self._settings.watch_output_dir)
         self.flatten_check.setChecked(self._settings.watch_flatten)
         self.overwrite_check.setChecked(self._settings.watch_overwrite)
+
+    def apply_settings(self, settings: GuiSettings) -> None:
+        """Apply settings pushed from the Settings tab."""
+        self._settings = settings
+        self._load_defaults()

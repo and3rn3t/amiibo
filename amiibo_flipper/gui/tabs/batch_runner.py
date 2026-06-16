@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.batch import BatchRunner, create_batch_from_yaml
-from amiibo_flipper.gui.settings import load_settings, save_settings
+from amiibo_flipper.gui.settings import GuiSettings, load_settings, save_settings
 from amiibo_flipper.gui.widgets import LogViewer, PathSelector
 
 logger = logging.getLogger(__name__)
@@ -139,3 +139,8 @@ class BatchRunnerTab(QWidget):
         """Apply saved defaults to form controls."""
         if self._settings.batch_file:
             self.file_selector.set_path(self._settings.batch_file)
+
+    def apply_settings(self, settings: GuiSettings) -> None:
+        """Apply settings pushed from the Settings tab."""
+        self._settings = settings
+        self._load_defaults()
