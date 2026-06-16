@@ -6,8 +6,11 @@ import logging
 from dataclasses import asdict
 from pathlib import Path
 
+from amiibo_flipper.archive import import_archive
 from amiibo_flipper.client import fetch_amiibos
+from amiibo_flipper.config import load_config
 from amiibo_flipper.converter import convert_directory
+from amiibo_flipper.duplicates import format_duplicates_for_display, save_duplication_report, scan_for_duplicates
 from amiibo_flipper.exporter import export_entries
 from amiibo_flipper.images import download_images
 from amiibo_flipper.inventory import build_inventory, render_inventory_report
@@ -23,6 +26,17 @@ DEFAULT_AMIIBO_JSON = Path("data/amiibo.json")
 DEFAULT_EXPORT_DIR = Path("flipper-export/apps_data/amiibo_db")
 DEFAULT_SD_NFC_DIR = Path("nfc/amiibo")
 DEFAULT_DESKTOP_NAME = "flipper-amiibo"
+
+# Global config loaded on startup
+_CONFIG = None
+
+
+def get_config():
+    """Get the loaded configuration."""
+    global _CONFIG
+    if _CONFIG is None:
+        _CONFIG = load_config()
+    return _CONFIG
 
 
 
@@ -154,6 +168,35 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Write all converted files into one folder instead of mirroring the source tree",
     )
     conv_parser.set_defaults(func=run_convert_bin)
+
+    # import-archive
+    arch_parser = subparsers.add_parser(
+        "import-archive",
+        help="Extract and convert amiibo files from a ZIP archive",
+    )
+    arch_parser.add_argument("--archive", type=Path, required=True, help="Path to ZIP archive")
+    arch_parser.add_argument("--output", type=Path, required=True, help="Output directory for converted .nfc files")
+    arch_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing .nfc files")
+    arch_parser.add_argument(
+        "--flatten",
+        action="store_true",
+        help="Flatten directory structure into a single folder",
+    )
+    arch_parser.add_argument(
+        "--check-duplicates",
+        action="store_true",
+        help="Scan for duplicate files after import",
+    )
+    arch_parser.set_defaults(func=run_import_archive)
+
+    # check-duplicates
+    dup_parser = subparsers.add_parser(
+        "check-duplicates",
+        help="Scan directory for duplicate NFC/BIN files by content hash",
+    )
+    dup_parser.add_argument("--source", type=Path, required=True, help="Directory to scan")
+    dup_parser.add_argument("--report", type=Path, help="Save results to JSON file")
+    dup_parser.set_defaults(func=run_check_duplicates)
 
     return parser
 
@@ -344,6 +387,58 @@ def run_convert_bin(args: argparse.Namespace) -> int:
         print(f"  source root: {summary.source_root}")
         print(f"  output root: {summary.output_root}")
     return 0
+
+
+def run_import_archive(args: argparse.Namespace) -> int:
+    """Import and convert amiibo files from a ZIP archive."""
+    if not args.archive.exists():
+        print(f"Archive not found: {args.archive}")
+        return 2
+
+    try:
+        result = import_archive(
+            archive_path=args.archive,
+            output_dir=args.output,
+            overwrite=args.overwrite,
+            flatten=args.flatten,
+        )
+
+        print(f"Imported archive: {args.archive.name}")
+        print(f"  Converted: {result.converted_count}")
+        print(f"  Skipped: {result.skipped_count}")
+        print(f"  Output: {result.extract_dir}")
+
+        if result.extraction_errors and args.verbose:
+            print(f"  Extraction errors: {len(result.extraction_errors)}")
+            for error in result.extraction_errors[:5]:
+                print(f"    - {error}")
+
+        if args.check_duplicates:
+            print("\nScanning for duplicates...")
+            dup_result = scan_for_duplicates(args.output)
+            print(format_duplicates_for_display(dup_result))
+
+        return 0
+
+    except Exception as e:
+        print(f"Import failed: {e}")
+        return 2
+
+
+def run_check_duplicates(args: argparse.Namespace) -> int:
+    """Check for duplicate amiibo files by content hash."""
+    if not args.source.exists():
+        print(f"Source directory not found: {args.source}")
+        return 2
+
+    result = scan_for_duplicates(args.source)
+    print(format_duplicates_for_display(result))
+
+    if args.report:
+        save_duplication_report(result, args.report)
+        print(f"\nReport saved to {args.report}")
+
+    return 0 if result.duplicates_found == 0 else 1
 
 
 if __name__ == "__main__":

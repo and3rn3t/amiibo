@@ -10,7 +10,9 @@ readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "andernet" }]
 license = { text = "MIT" }
-dependencies = []
+dependencies = [
+  "PyYAML>=6.0",
+]
 
 [project.optional-dependencies]
 dev = [
