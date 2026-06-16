@@ -5,11 +5,15 @@ import os
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QElapsedTimer, QEventLoop, QTimer, Qt
+from PyQt6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
+    QFrame,
+    QHBoxLayout,
     QLabel,
     QMainWindow,
+    QSplashScreen,
     QStyle,
     QTabWidget,
     QVBoxLayout,
@@ -173,6 +177,51 @@ QFrame#Card {{
 
 QFrame#Card:hover {{
     border: 1px solid {palette['focus']};
+}}
+
+QFrame#TitleHero {{
+    background: qlineargradient(
+        x1: 0,
+        y1: 0,
+        x2: 1,
+        y2: 1,
+        stop: 0 {palette['card_bg']},
+        stop: 1 {palette['tab_bg']}
+    );
+    border: 1px solid {palette['pane_border']};
+    border-radius: 12px;
+}}
+
+QLabel#HeroEyebrow {{
+    color: {palette['section']};
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}}
+
+QLabel#HeroTitle {{
+    color: {palette['title']};
+    font-size: 30px;
+    font-weight: 800;
+    min-height: 34px;
+}}
+
+QLabel#HeroSubtitle {{
+    color: {palette['subtitle']};
+    font-size: 13px;
+    min-height: 18px;
+}}
+
+QLabel#HeroBadge {{
+    color: {palette['title']};
+    background: {palette['button_bg']};
+    border: 1px solid {palette['focus']};
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    min-height: 0px;
 }}
 
 QTabWidget::pane {{
@@ -417,13 +466,33 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(16, 12, 16, 16)
         layout.setSpacing(10)
 
-        title = QLabel("amiibo-flipper")
-        title.setObjectName("AppTitle")
-        subtitle = QLabel("Convert, monitor, and manage your amiibo workflows from one place")
-        subtitle.setObjectName("AppSubtitle")
+        hero = QFrame()
+        hero.setObjectName("TitleHero")
+        hero_layout = QHBoxLayout()
+        hero_layout.setContentsMargins(16, 14, 16, 14)
+        hero_layout.setSpacing(14)
 
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        hero_text = QVBoxLayout()
+        hero_text.setSpacing(2)
+        eyebrow = QLabel("Desktop Workflow Hub")
+        eyebrow.setObjectName("HeroEyebrow")
+        title = QLabel("amiibo-flipper")
+        title.setObjectName("HeroTitle")
+        subtitle = QLabel("Convert, monitor, and manage your amiibo workflows from one place")
+        subtitle.setObjectName("HeroSubtitle")
+        hero_text.addWidget(eyebrow)
+        hero_text.addWidget(title)
+        hero_text.addWidget(subtitle)
+
+        badge = QLabel("GUI PREVIEW")
+        badge.setObjectName("HeroBadge")
+        badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        hero_layout.addLayout(hero_text, 1)
+        hero_layout.addWidget(badge, 0, Qt.AlignmentFlag.AlignTop)
+        hero.setLayout(hero_layout)
+
+        layout.addWidget(hero)
 
         # Create tabs
         tabs = QTabWidget()
@@ -489,11 +558,68 @@ def main() -> None:
 
     _configure_qt_plugin_paths()
     app = QApplication(sys.argv)
+
+    splash = _build_splash_screen()
+    splash.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
+    splash.show()
+    splash.raise_()
+    app.processEvents()
+
+    splash_timer = QElapsedTimer()
+    splash_timer.start()
+
     initial = load_settings()
     app.setStyleSheet(build_app_style(initial.theme, initial.compact_mode))
     window = MainWindow()
+
+    min_splash_ms = 2200
+    remaining_ms = max(0, min_splash_ms - splash_timer.elapsed())
+    if remaining_ms > 0:
+        loop = QEventLoop()
+        QTimer.singleShot(remaining_ms, loop.quit)
+        loop.exec()
+
     window.show()
+    splash.finish(window)
     sys.exit(app.exec())
+
+
+def _build_splash_screen() -> QSplashScreen:
+    """Create a branded splash screen for startup."""
+    width, height = 760, 380
+    splash_font = "Avenir Next"
+    pixmap = QPixmap(width, height)
+    pixmap.fill(QColor("#0b171d"))
+
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+    gradient = QLinearGradient(0, 0, width, height)
+    gradient.setColorAt(0.0, QColor("#0b171d"))
+    gradient.setColorAt(1.0, QColor("#123544"))
+    painter.setBrush(gradient)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawRect(0, 0, width, height)
+
+    painter.setPen(QColor("#2e7d8e"))
+    painter.drawRect(0, 0, width - 1, height - 1)
+
+    painter.setPen(QColor("#3fa2b3"))
+    painter.setFont(QFont(splash_font, 11, QFont.Weight.Bold))
+    painter.drawText(40, 72, "Desktop Workflow Hub")
+
+    painter.setPen(QColor("#eef5f8"))
+    painter.setFont(QFont(splash_font, 42, QFont.Weight.Black))
+    painter.drawText(40, 188, "amiibo-flipper")
+
+    painter.setPen(QColor("#a6bac2"))
+    painter.setFont(QFont(splash_font, 15))
+    painter.drawText(40, 238, "Preparing tools and loading tabs...")
+
+    painter.end()
+
+    splash = QSplashScreen(pixmap)
+    return splash
 
 
 if __name__ == "__main__":

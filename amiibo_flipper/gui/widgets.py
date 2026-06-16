@@ -5,10 +5,12 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
-    QHBoxLayout,
+    QGridLayout,
     QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
+    QStyle,
     QTextEdit,
     QVBoxLayout,
     QWidget,
@@ -27,22 +29,43 @@ class PathSelector(QWidget):
         """
         super().__init__()
         self.is_directory = is_directory
-        
-        layout = QHBoxLayout()
+
+        layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        
+        layout.setHorizontalSpacing(8)
+        layout.setVerticalSpacing(4)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnMinimumWidth(1, 40)
+
         self.label = QLabel(label)
+        self.label.setMinimumHeight(0)
+
         self.path_input = QLineEdit()
         self.path_input.setReadOnly(True)
-        self.browse_btn = QPushButton("Browse...")
+        self.path_input.setMinimumWidth(0)
+        self.path_input.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
+        self.browse_btn = QPushButton("")
         self.browse_btn.setProperty("variant", "secondary")
-        self.browse_btn.setMinimumWidth(96)
+        self.browse_btn.setToolTip("Browse")
+        self.browse_btn.setFixedWidth(40)
+        self.browse_btn.setSizePolicy(
+            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Fixed,
+        )
+        style = self.style()
+        if style is not None:
+            self.browse_btn.setIcon(
+                style.standardIcon(QStyle.StandardPixmap.SP_DirOpenIcon)
+            )
         self.browse_btn.clicked.connect(self._on_browse)
-        
-        layout.addWidget(self.label)
-        layout.addWidget(self.path_input, 1)
-        layout.addWidget(self.browse_btn)
-        
+
+        layout.addWidget(self.label, 0, 0, 1, 2)
+        layout.addWidget(self.path_input, 1, 0)
+        layout.addWidget(self.browse_btn, 1, 1)
+
         self.setLayout(layout)
     
     def _on_browse(self) -> None:
