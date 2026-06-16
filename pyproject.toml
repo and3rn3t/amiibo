@@ -16,12 +16,14 @@ dependencies = [
 
 [project.optional-dependencies]
 watch = ["watchdog>=4.0"]
+gui = ["PyQt6>=6.0"]
 dev = [
   "pytest>=8.0",
 ]
 
 [project.scripts]
 amiibo-flipper = "amiibo_flipper.cli:main"
+amiibo-flipper-gui = "amiibo_flipper.gui.main_window:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
