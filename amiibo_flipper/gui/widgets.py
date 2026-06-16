@@ -77,7 +77,7 @@ class LogViewer(QTextEdit):
         super().__init__()
         self.setReadOnly(True)
         self.setStyleSheet(
-            "QTextEdit { background-color: #1e1e1e; color: #d4d4d4; font-family: monospace; }"
+            "QTextEdit { background-color: #1e1e1e; color: #d4d4d4; font-family: Menlo, Monaco, 'Courier New', monospace; }"
         )
     
     def append_log(self, message: str, level: str = "INFO") -> None:

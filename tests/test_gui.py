@@ -1,17 +1,28 @@
 """Tests for GUI components."""
 
-import pytest
-from PyQt6.QtWidgets import QApplication
+import os
 from pathlib import Path
 
-from amiibo_flipper.gui.widgets import PathSelector, LogViewer
-from amiibo_flipper.gui.tabs import ConverterTab, BatchRunnerTab
+import pytest
+from PyQt6.QtWidgets import QApplication
+
+if os.environ.get("AMIIBO_RUN_GUI_TESTS") != "1":
+    pytest.skip(
+        "GUI tests are opt-in; run with AMIIBO_RUN_GUI_TESTS=1 in a local GUI session",
+        allow_module_level=True,
+    )
+
 from amiibo_flipper.gui.main_window import MainWindow
+from amiibo_flipper.gui.tabs import BatchRunnerTab, ConverterTab
+from amiibo_flipper.gui.tabs.dashboard import compute_dashboard_stats
+from amiibo_flipper.gui.tabs.duplicates import DuplicatesTab
+from amiibo_flipper.gui.widgets import PathSelector, LogViewer
 
 
 @pytest.fixture(scope="session")
 def qapp():
     """Create QApplication for tests."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
     app = QApplication.instance()
     if app is None:
         app = QApplication([])
@@ -116,6 +127,48 @@ class TestBatchRunnerTab:
         assert tab.file_selector.is_directory is False
 
 
+class TestDuplicatesTab:
+    """Tests for DuplicatesTab."""
+
+    def test_duplicates_tab_init(self, qapp):
+        """Test DuplicatesTab initialization."""
+        tab = DuplicatesTab()
+        assert tab.source_selector is not None
+        assert tab.report_selector is not None
+        assert tab.scan_btn is not None
+        assert tab.save_report_check.isChecked() is False
+        assert tab.report_selector.isEnabled() is False
+
+    def test_duplicates_report_toggle(self, qapp):
+        """Test enabling/disabling report output selection."""
+        tab = DuplicatesTab()
+        tab.save_report_check.setChecked(True)
+        assert tab.report_selector.isEnabled() is True
+        tab.save_report_check.setChecked(False)
+        assert tab.report_selector.isEnabled() is False
+
+
+class TestDashboardStats:
+    """Tests for dashboard stat helpers."""
+
+    def test_compute_dashboard_stats(self, tmp_path: Path):
+        """Compute totals including duplicate groups."""
+        source = tmp_path / "collection"
+        source.mkdir()
+        (source / "a.nfc").write_text("same", encoding="utf-8")
+        (source / "b.nfc").write_text("same", encoding="utf-8")
+        (source / "c.bin").write_bytes(b"abc")
+
+        stats = compute_dashboard_stats(source)
+
+        assert stats.total_files == 3
+        assert stats.nfc_files == 2
+        assert stats.bin_files == 1
+        assert stats.duplicate_files == 1
+        assert stats.duplicate_groups == 1
+        assert stats.total_bytes > 0
+
+
 class TestMainWindow:
     """Tests for MainWindow."""
 
@@ -126,7 +179,7 @@ class TestMainWindow:
         assert window.centralWidget() is not None
 
     def test_main_window_has_tabs(self, qapp):
-        """Test MainWindow has converter and batch runner tabs."""
+        """Test MainWindow has all feature tabs."""
         window = MainWindow()
         central = window.centralWidget()
         assert central is not None
@@ -137,4 +190,4 @@ class TestMainWindow:
             tabs = widget
             break
         assert tabs is not None
-        assert tabs.count() == 2
+        assert tabs.count() == 4

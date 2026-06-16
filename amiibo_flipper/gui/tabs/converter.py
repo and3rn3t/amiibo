@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -78,8 +78,10 @@ class ConversionWorker(QThread):
                 raise ValueError(f"Source directory not found: {self.source}")
 
             # Find all .bin files
-            bin_files = list(source_path.rglob("*.bin")) + list(
-                source_path.rglob("*.BIN")
+            bin_files = sorted(
+                path
+                for path in source_path.rglob("*")
+                if path.is_file() and path.suffix.lower() == ".bin"
             )
 
             if not bin_files:
@@ -93,7 +95,7 @@ class ConversionWorker(QThread):
             jobs = [
                 ConversionJob(
                     source=str(f),
-                    output=str(Path(self.output) / f.stem / ".nfc"),
+                    output=str(Path(self.output) / f"{f.stem}.nfc"),
                     overwrite=self.overwrite,
                 )
                 for f in bin_files
