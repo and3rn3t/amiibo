@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 
 from amiibo_flipper.batch import BatchRunner, create_batch_from_yaml
 from amiibo_flipper.gui.settings import GuiSettings, load_settings, save_settings
-from amiibo_flipper.gui.widgets import LogViewer, PathSelector
+from amiibo_flipper.gui.widgets import Card, LogViewer, PathSelector, section_title
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +75,17 @@ class BatchRunnerTab(QWidget):
     def _init_ui(self) -> None:
         """Initialize UI."""
         layout = QVBoxLayout()
+        layout.setSpacing(10)
+
+        controls_card = Card()
+        controls_card.layout.addWidget(section_title("Batch Runner"))
 
         # File selection
         self.file_selector = PathSelector(
             "Batch File (.yml):",
             is_directory=False,
         )
-        layout.addWidget(self.file_selector)
+        controls_card.layout.addWidget(self.file_selector)
 
         # Info text
         info_label = QLabel(
@@ -89,24 +93,27 @@ class BatchRunnerTab(QWidget):
             "Format: commands with name, input, output, and other options."
         )
         info_label.setWordWrap(True)
-        layout.addWidget(info_label)
+        controls_card.layout.addWidget(info_label)
 
         # Run button
         self.run_btn = QPushButton("Run Batch")
         self.run_btn.clicked.connect(self._on_run_batch)
-        layout.addWidget(self.run_btn)
+        controls_card.layout.addWidget(self.run_btn)
 
-        # Logs
-        log_label = QLabel("Execution Log:")
-        layout.addWidget(log_label)
+        layout.addWidget(controls_card)
+
+        log_card = Card()
+        log_card.layout.addWidget(section_title("Execution Log"))
 
         self.log_viewer = LogViewer()
-        layout.addWidget(self.log_viewer, 1)
+        log_card.layout.addWidget(self.log_viewer, 1)
 
         # Clear logs button
         self.clear_logs_btn = QPushButton("Clear Logs")
         self.clear_logs_btn.clicked.connect(self.log_viewer.clear_logs)
-        layout.addWidget(self.clear_logs_btn)
+        log_card.layout.addWidget(self.clear_logs_btn)
+
+        layout.addWidget(log_card, 1)
 
         self.setLayout(layout)
 

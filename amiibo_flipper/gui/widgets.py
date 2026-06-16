@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QFileDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -103,3 +103,22 @@ class LogViewer(QTextEdit):
     def clear_logs(self) -> None:
         """Clear all logs."""
         self.clear()
+
+
+class Card(QFrame):
+    """Simple card container used to visually group controls."""
+
+    def __init__(self):
+        super().__init__()
+        self.setObjectName("Card")
+        self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(14, 14, 14, 14)
+        self.layout.setSpacing(10)
+        self.setLayout(self.layout)
+
+
+def section_title(text: str) -> QLabel:
+    """Styled section title label."""
+    label = QLabel(text)
+    label.setObjectName("SectionTitle")
+    return label

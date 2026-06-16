@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
 
 from amiibo_flipper.converter import bin_to_nfc
 from amiibo_flipper.gui.settings import GuiSettings, load_settings, save_settings
-from amiibo_flipper.gui.widgets import LogViewer, PathSelector
+from amiibo_flipper.gui.widgets import Card, LogViewer, PathSelector, section_title
 
 logger = logging.getLogger(__name__)
 
@@ -159,24 +159,32 @@ class WatchTab(QWidget):
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout()
+        layout.setSpacing(10)
 
         self.source_selector = PathSelector("Watch Directory:", is_directory=True)
         self.output_selector = PathSelector("Output Directory:", is_directory=True)
-        layout.addWidget(self.source_selector)
-        layout.addWidget(self.output_selector)
+        controls_card = Card()
+        controls_card.layout.addWidget(section_title("Watch Mode"))
+        controls_card.layout.addWidget(self.source_selector)
+        controls_card.layout.addWidget(self.output_selector)
 
         self.flatten_check = QCheckBox("Flatten output directory structure")
         self.overwrite_check = QCheckBox("Overwrite existing files")
-        layout.addWidget(self.flatten_check)
-        layout.addWidget(self.overwrite_check)
+        controls_card.layout.addWidget(self.flatten_check)
+        controls_card.layout.addWidget(self.overwrite_check)
 
         self.start_btn = QPushButton("Start Watch")
         self.start_btn.clicked.connect(self._on_start)
         self.stop_btn = QPushButton("Stop Watch")
         self.stop_btn.clicked.connect(self._on_stop)
         self.stop_btn.setEnabled(False)
-        layout.addWidget(self.start_btn)
-        layout.addWidget(self.stop_btn)
+        controls_card.layout.addWidget(self.start_btn)
+        controls_card.layout.addWidget(self.stop_btn)
+
+        layout.addWidget(controls_card)
+
+        stats_card = Card()
+        stats_card.layout.addWidget(section_title("Session Stats"))
 
         stats_grid = QGridLayout()
         self.converted_label = QLabel("Converted: 0")
@@ -187,11 +195,14 @@ class WatchTab(QWidget):
         stats_grid.addWidget(self.skipped_label, 0, 1)
         stats_grid.addWidget(self.errors_label, 1, 0)
         stats_grid.addWidget(self.duration_label, 1, 1)
-        layout.addLayout(stats_grid)
+        stats_card.layout.addLayout(stats_grid)
+        layout.addWidget(stats_card)
 
-        layout.addWidget(QLabel("Watch Log:"))
+        log_card = Card()
+        log_card.layout.addWidget(section_title("Live Events"))
         self.log_viewer = LogViewer()
-        layout.addWidget(self.log_viewer, 1)
+        log_card.layout.addWidget(self.log_viewer, 1)
+        layout.addWidget(log_card, 1)
 
         self.setLayout(layout)
 

@@ -17,8 +17,8 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.gui.settings import GuiSettings, load_settings, save_settings
+from amiibo_flipper.gui.widgets import Card, LogViewer, PathSelector, section_title
 from amiibo_flipper.parallel import ConversionJob, convert_files_parallel
-from amiibo_flipper.gui.widgets import LogViewer, PathSelector
 
 logger = logging.getLogger(__name__)
 
@@ -156,67 +156,65 @@ class ConverterTab(QWidget):
     def _init_ui(self) -> None:
         """Initialize UI."""
         layout = QVBoxLayout()
+        layout.setSpacing(10)
 
-        # Mode selection
-        mode_label = QLabel("Operation Mode:")
+        controls_card = Card()
+        controls_card.layout.addWidget(section_title("Conversion"))
+
+        mode_label = QLabel("Operation Mode")
         self.mode_combo = QComboBox()
         self.mode_combo.addItems(["Convert .bin files", "Import archive"])
         self.mode_combo.currentTextChanged.connect(self._on_mode_changed)
-        layout.addWidget(mode_label)
-        layout.addWidget(self.mode_combo)
+        controls_card.layout.addWidget(mode_label)
+        controls_card.layout.addWidget(self.mode_combo)
 
-        # Source path
         self.source_selector = PathSelector(
             "Source Directory:",
             is_directory=True,
         )
-        layout.addWidget(self.source_selector)
+        controls_card.layout.addWidget(self.source_selector)
 
-        # Output path
         self.output_selector = PathSelector(
             "Output Directory:",
             is_directory=True,
         )
-        layout.addWidget(self.output_selector)
+        controls_card.layout.addWidget(self.output_selector)
 
-        # Options
         self.overwrite_check = QCheckBox("Overwrite existing files")
-        layout.addWidget(self.overwrite_check)
-
         self.flatten_check = QCheckBox("Flatten directory structure (archive mode)")
         self.flatten_check.setEnabled(False)
-        layout.addWidget(self.flatten_check)
+        controls_card.layout.addWidget(self.overwrite_check)
+        controls_card.layout.addWidget(self.flatten_check)
 
-        # Workers
-        workers_label = QLabel("Parallel Workers:")
+        workers_label = QLabel("Parallel Workers")
         self.workers_spin = QSpinBox()
         self.workers_spin.setMinimum(1)
         self.workers_spin.setMaximum(16)
         self.workers_spin.setValue(4)
-        layout.addWidget(workers_label)
-        layout.addWidget(self.workers_spin)
+        controls_card.layout.addWidget(workers_label)
+        controls_card.layout.addWidget(self.workers_spin)
 
-        # Convert button
         self.convert_btn = QPushButton("Start Conversion")
         self.convert_btn.clicked.connect(self._on_start_conversion)
-        layout.addWidget(self.convert_btn)
+        controls_card.layout.addWidget(self.convert_btn)
 
-        # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
-        layout.addWidget(self.progress_bar)
+        controls_card.layout.addWidget(self.progress_bar)
 
-        # Logs
-        log_label = QLabel("Conversion Log:")
-        layout.addWidget(log_label)
+        layout.addWidget(controls_card)
+
+        log_card = Card()
+        log_card.layout.addWidget(section_title("Activity"))
 
         self.log_viewer = LogViewer()
-        layout.addWidget(self.log_viewer, 1)
+        log_card.layout.addWidget(self.log_viewer, 1)
 
-        # Clear logs button
         self.clear_logs_btn = QPushButton("Clear Logs")
         self.clear_logs_btn.clicked.connect(self.log_viewer.clear_logs)
-        layout.addWidget(self.clear_logs_btn)
+        log_card.layout.addWidget(self.clear_logs_btn)
+
+        layout.addWidget(log_card, 1)
 
         self.setLayout(layout)
 

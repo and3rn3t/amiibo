@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.gui.settings import GuiSettings, load_settings, save_settings
-from amiibo_flipper.gui.widgets import LogViewer, PathSelector
+from amiibo_flipper.gui.widgets import Card, LogViewer, PathSelector, section_title
 
 
 class SettingsTab(QWidget):
@@ -29,8 +29,11 @@ class SettingsTab(QWidget):
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout()
+        layout.setSpacing(10)
 
-        layout.addWidget(QLabel("Converter Defaults"))
+        converter_card = Card()
+        converter_card.layout.addWidget(section_title("Converter Defaults"))
+
         self.converter_source_selector = PathSelector("Default Source:", is_directory=True)
         self.converter_output_selector = PathSelector("Default Output:", is_directory=True)
         self.converter_workers_spin = QSpinBox()
@@ -40,34 +43,49 @@ class SettingsTab(QWidget):
         self.converter_overwrite_check = QCheckBox("Default overwrite")
         self.converter_flatten_check = QCheckBox("Default flatten")
 
-        layout.addWidget(self.converter_source_selector)
-        layout.addWidget(self.converter_output_selector)
-        layout.addWidget(QLabel("Default workers:"))
-        layout.addWidget(self.converter_workers_spin)
-        layout.addWidget(self.converter_overwrite_check)
-        layout.addWidget(self.converter_flatten_check)
+        converter_card.layout.addWidget(self.converter_source_selector)
+        converter_card.layout.addWidget(self.converter_output_selector)
+        converter_card.layout.addWidget(QLabel("Default workers:"))
+        converter_card.layout.addWidget(self.converter_workers_spin)
+        converter_card.layout.addWidget(self.converter_overwrite_check)
+        converter_card.layout.addWidget(self.converter_flatten_check)
 
-        layout.addWidget(QLabel("Watch Defaults"))
+        layout.addWidget(converter_card)
+
+        watch_card = Card()
+        watch_card.layout.addWidget(section_title("Watch Defaults"))
+
         self.watch_source_selector = PathSelector("Default Watch Source:", is_directory=True)
         self.watch_output_selector = PathSelector("Default Watch Output:", is_directory=True)
         self.watch_overwrite_check = QCheckBox("Default watch overwrite")
         self.watch_flatten_check = QCheckBox("Default watch flatten")
 
-        layout.addWidget(self.watch_source_selector)
-        layout.addWidget(self.watch_output_selector)
-        layout.addWidget(self.watch_overwrite_check)
-        layout.addWidget(self.watch_flatten_check)
+        watch_card.layout.addWidget(self.watch_source_selector)
+        watch_card.layout.addWidget(self.watch_output_selector)
+        watch_card.layout.addWidget(self.watch_overwrite_check)
+        watch_card.layout.addWidget(self.watch_flatten_check)
 
-        layout.addWidget(QLabel("Batch Defaults"))
+        layout.addWidget(watch_card)
+
+        batch_card = Card()
+        batch_card.layout.addWidget(section_title("Batch Defaults"))
+
         self.batch_file_selector = PathSelector("Default Batch File:", is_directory=False)
-        layout.addWidget(self.batch_file_selector)
+        batch_card.layout.addWidget(self.batch_file_selector)
 
         self.save_btn = QPushButton("Save Settings")
         self.save_btn.clicked.connect(self._on_save)
-        layout.addWidget(self.save_btn)
+        batch_card.layout.addWidget(self.save_btn)
+
+        layout.addWidget(batch_card)
+
+        log_card = Card()
+        log_card.layout.addWidget(section_title("Settings Activity"))
 
         self.log_viewer = LogViewer()
-        layout.addWidget(self.log_viewer, 1)
+        log_card.layout.addWidget(self.log_viewer, 1)
+
+        layout.addWidget(log_card, 1)
 
         self.setLayout(layout)
 

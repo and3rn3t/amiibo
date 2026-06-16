@@ -21,7 +21,7 @@ from amiibo_flipper.duplicates import (
     save_duplication_report,
     scan_for_duplicates,
 )
-from amiibo_flipper.gui.widgets import LogViewer, PathSelector
+from amiibo_flipper.gui.widgets import Card, LogViewer, PathSelector, section_title
 
 logger = logging.getLogger(__name__)
 
@@ -69,32 +69,41 @@ class DuplicatesTab(QWidget):
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout()
+        layout.setSpacing(10)
+
+        controls_card = Card()
+        controls_card.layout.addWidget(section_title("Duplicate Scanner"))
 
         self.source_selector = PathSelector("Scan Directory:", is_directory=True)
-        layout.addWidget(self.source_selector)
+        controls_card.layout.addWidget(self.source_selector)
 
         self.save_report_check = QCheckBox("Save JSON report")
         self.save_report_check.toggled.connect(self._on_report_toggle)
-        layout.addWidget(self.save_report_check)
+        controls_card.layout.addWidget(self.save_report_check)
 
         self.report_selector = PathSelector("Report File:", is_directory=False)
         self.report_selector.setEnabled(False)
-        layout.addWidget(self.report_selector)
+        controls_card.layout.addWidget(self.report_selector)
 
         self.scan_btn = QPushButton("Scan Duplicates")
         self.scan_btn.clicked.connect(self._on_scan)
-        layout.addWidget(self.scan_btn)
+        controls_card.layout.addWidget(self.scan_btn)
 
         self.summary_label = QLabel("No scan run yet")
-        layout.addWidget(self.summary_label)
+        controls_card.layout.addWidget(self.summary_label)
 
-        layout.addWidget(QLabel("Results:"))
+        layout.addWidget(controls_card)
+
+        results_card = Card()
+        results_card.layout.addWidget(section_title("Results"))
         self.log_viewer = LogViewer()
-        layout.addWidget(self.log_viewer, 1)
+        results_card.layout.addWidget(self.log_viewer, 1)
 
         self.clear_logs_btn = QPushButton("Clear Logs")
         self.clear_logs_btn.clicked.connect(self.log_viewer.clear_logs)
-        layout.addWidget(self.clear_logs_btn)
+        results_card.layout.addWidget(self.clear_logs_btn)
+
+        layout.addWidget(results_card, 1)
 
         self.setLayout(layout)
 

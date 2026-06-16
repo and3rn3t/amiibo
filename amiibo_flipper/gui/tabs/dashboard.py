@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 )
 
 from amiibo_flipper.duplicates import scan_for_duplicates
-from amiibo_flipper.gui.widgets import LogViewer, PathSelector
+from amiibo_flipper.gui.widgets import Card, LogViewer, PathSelector, section_title
 
 
 @dataclass
@@ -68,13 +68,22 @@ class DashboardTab(QWidget):
 
     def _init_ui(self) -> None:
         layout = QVBoxLayout()
+        layout.setSpacing(10)
+
+        controls_card = Card()
+        controls_card.layout.addWidget(section_title("Collection Overview"))
 
         self.source_selector = PathSelector("Collection Directory:", is_directory=True)
-        layout.addWidget(self.source_selector)
+        controls_card.layout.addWidget(self.source_selector)
 
         self.refresh_btn = QPushButton("Refresh Dashboard")
         self.refresh_btn.clicked.connect(self._on_refresh)
-        layout.addWidget(self.refresh_btn)
+        controls_card.layout.addWidget(self.refresh_btn)
+
+        layout.addWidget(controls_card)
+
+        stats_card = Card()
+        stats_card.layout.addWidget(section_title("Metrics"))
 
         stats_grid = QGridLayout()
         self.total_label = QLabel("Total files: -")
@@ -92,11 +101,15 @@ class DashboardTab(QWidget):
         stats_grid.addWidget(self.group_label, 2, 0)
         stats_grid.addWidget(self.size_label, 2, 1)
         stats_grid.addWidget(self.updated_label, 3, 0, 1, 2)
-        layout.addLayout(stats_grid)
+        stats_card.layout.addLayout(stats_grid)
+        layout.addWidget(stats_card)
 
-        layout.addWidget(QLabel("Dashboard Log:"))
+        log_card = Card()
+        log_card.layout.addWidget(section_title("Activity"))
         self.log_viewer = LogViewer()
-        layout.addWidget(self.log_viewer, 1)
+        log_card.layout.addWidget(self.log_viewer, 1)
+
+        layout.addWidget(log_card, 1)
 
         self.setLayout(layout)
 
