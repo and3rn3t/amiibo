@@ -9,6 +9,7 @@ PYQT6_ROOT = Path(PyQt6.__file__).resolve().parent
 QT6_ROOT = PYQT6_ROOT / "Qt6"
 PLUGINS_ROOT = QT6_ROOT / "plugins"
 FRAMEWORKS_ROOT = QT6_ROOT / "lib"
+ICON_PATH = Path("assets/icon.icns")
 
 # Collect all Qt6 plugin directories we need
 qt_plugins = [
@@ -109,7 +110,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name="amiibo-flipper.app",
-    icon=None,
+    icon=str(ICON_PATH) if ICON_PATH.exists() else None,
     bundle_identifier="com.andernet.amiibo-flipper",
     version="0.1.0",
     info_plist={
