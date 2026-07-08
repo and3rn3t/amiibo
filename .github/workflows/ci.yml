@@ -16,4 +16,4 @@ permissions:
 
 jobs:
   test:
-    uses: and3rn3t/.github/.github/workflows/reusable-python-test.yml@main
+    uses: and3rn3t/.github/.github/workflows/reusable-python-test.yml@v1
