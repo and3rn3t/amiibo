@@ -16,7 +16,7 @@ dependencies = [
 
 [project.optional-dependencies]
 watch = ["watchdog>=4.0"]
-gui = ["PyQt6>=6.11,<6.12"]
+gui = ["PyQt6>=6.12,<6.13"]
 dev = [
   "pytest>=8.0",
   "pyinstaller>=6.0",
